@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="de">
+
+<head>
+    <meta charset="utf-8">
+    <title>Fileshare</title>
+</head>
+
+<body>
+    <h1>Datei teilen</h1>
+    <input type="file" id="file"><br>
+    <input type="password" id="password" placeholder="Passwort"><br>
+    <button id="upload">Datei Hochladen</button>
+    <progress id="progress" value="0" max="100" hidden></progress>
+    <p id="result"></p>
+
+    <script>
+        const result = document.getElementById("result");
+        const progress = document.getElementById("progress");
+
+        // ...
+        document.getElementById("upload").addEventListener("click", async () => {
+            const file = document.getElementById("file").files[0];
+            const password = document.getElementById("password").value;
+            if (!file) return (result.textContent = "Keine Datei gewählt");
+
+            // ...
+            const res = await fetch("/u", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ name: file.name, password }),
+            });
+            if (!res.ok) return (result.textContent = "Fehler: " + (await res.text()));
+            const { uploadUrl, downloadUrl } = await res.json();
+
+            // ...
+            const xhr = new XMLHttpRequest();
+            xhr.open("PUT", uploadUrl);
+            xhr.setRequestHeader("content-type", file.type || "application/octet-stream");
+            xhr.upload.onprogress = (e) => (progress.value = (e.loaded / e.total) * 100);
+            xhr.onload = () => {
+                progress.hidden = true;
+                result.innerHTML = xhr.status < 300
+                    ? `Dein Download-Link: <a href="${downloadUrl}">${downloadUrl}</a>`
+                    : "Upload fehlgeschlagen (" + xhr.status + ")";
+            };
+            xhr.onerror = () => (result.textContent = "Upload blockiert oder fehlgeschlagen");
+            progress.hidden = false;
+            xhr.send(file);
+        });
+    </script>
+</body>
+
+</html>
