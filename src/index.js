@@ -9,10 +9,12 @@
  */
 import { AwsClient } from "aws4fetch";
 
-// time after which a file is being deleted if it was never downloaded
-const NOT_DOWNLOADED_MS = 60 * 60 * 1000;
 // time after which a file is being deleted if it was downloaded
-const AFTER_DOWNLOAD_MS = 7 * 24 * 60 * 60 * 1000;
+// 7 days
+const DELETE_TIME_NOT_DOWNLOADED = 7 * 24 * 60 * 60 * 1000;
+// time after which a file is being deleted if it was never downloaded
+// 60 minutes
+const DELETE_TIME_AFTER_DOWNLOADED = 60 * 60 * 1000;
 
 export default {
 	async fetch(request, env, ctx) {
@@ -62,7 +64,7 @@ export default {
 			}
 
 			const marker = await env.FILESHARE_BUCKET.head(`_dl/${key}`);
-			const expired = marker ? now - marker.uploaded.getTime() > AFTER_DOWNLOAD_MS : now - info.uploaded.getTime() > NOT_DOWNLOADED_MS;
+			const expired = marker ? now - marker.uploaded.getTime() > DELETE_TIME_AFTER_DOWNLOADED : now - info.uploaded.getTime() > DELETE_TIME_NOT_DOWNLOADED;
 
 			if (expired) {
 				return new Response("Abgelaufen", { status: 404 });
@@ -99,8 +101,8 @@ export default {
 		let cursor;
 		do {
 			const list = await env.FILESHARE_BUCKET.list({ cursor });
-			// ...
-			all.push(...list.objects);
+			// add the objects to the list
+			all = all.concat(list.objects);
 			cursor = list.truncated ? list.cursor : undefined;
 		} while (cursor);
 
@@ -115,8 +117,8 @@ export default {
 
 			if (o.key.startsWith("_dl/")) {
 				// if downloaded, delete after 1 week
-				if (age > AFTER_DOWNLOAD_MS) toDelete.push(o.key, o.key.slice(4));
-			} else if (!downloaded.has(o.key) && age > NOT_DOWNLOADED_MS) {
+				if (age > DELETE_TIME_AFTER_DOWNLOADED) toDelete.push(o.key, o.key.slice(4));
+			} else if (!downloaded.has(o.key) && age > DELETE_TIME_NOT_DOWNLOADED) {
 				// if never downloaded, delete after 1 hour
 				toDelete.push(o.key);
 			}

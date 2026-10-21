@@ -3,14 +3,86 @@
 
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Fileshare</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 480px;
+            margin: 0 auto;
+            /* Abstand zum Rand, inkl. iPhone-Notch / Home-Leiste */
+            padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+            line-height: 1.5;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin: 0 0 24px;
+        }
+
+        /* alle Eingaben und der Button: volle Breite, groß, mit Abstand */
+        input,
+        button {
+            display: block;
+            width: 100%;
+            margin-bottom: 16px;
+            padding: 14px 16px;
+            /* mind. 16px, sonst zoomt Safari beim Antippen hinein */
+            font-size: 17px;
+            border-radius: 12px;
+        }
+
+        input[type="password"] {
+            border: 1px solid #ccc;
+        }
+
+        input[type="file"] {
+            border: 1px dashed #aaa;
+            background: #fafafa;
+        }
+
+        button {
+            /* Mindesthöhe für bequemes Antippen */
+            min-height: 52px;
+            border: none;
+            background: #0a84ff;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:active {
+            opacity: 0.8;
+        }
+
+        progress {
+            display: block;
+            width: 100%;
+            height: 12px;
+            margin-bottom: 16px;
+        }
+
+        #result {
+            margin-top: 8px;
+            /* langer Link bricht um statt aus dem Bildschirm zu ragen */
+            word-break: break-all;
+        }
+
+        #result a {
+            color: #0a84ff;
+        }
+    </style>
 </head>
 
 <body>
     <h1>Datei teilen</h1>
-    <input type="file" id="file"><br>
-    <input type="password" id="password" placeholder="Passwort"><br>
-    <button id="upload">Datei Hochladen</button>
+    <input type="file" id="file">
+    <input type="password" id="password" placeholder="Passwort">
+    <button id="upload">Datei hochladen</button>
     <progress id="progress" value="0" max="100" hidden></progress>
     <p id="result"></p>
 
@@ -18,13 +90,13 @@
         const result = document.getElementById("result");
         const progress = document.getElementById("progress");
 
-        // ...
+        // runs when the upload button is clicked
         document.getElementById("upload").addEventListener("click", async () => {
             const file = document.getElementById("file").files[0];
             const password = document.getElementById("password").value;
             if (!file) return (result.textContent = "Keine Datei gewählt");
 
-            // ...
+            // 1) ask the worker for an upload ticket
             const res = await fetch("/u", {
                 method: "POST",
                 headers: { "content-type": "application/json" },
@@ -33,7 +105,7 @@
             if (!res.ok) return (result.textContent = "Fehler: " + (await res.text()));
             const { uploadUrl, downloadUrl } = await res.json();
 
-            // ...
+            // 2) upload the file directly to R2
             const xhr = new XMLHttpRequest();
             xhr.open("PUT", uploadUrl);
             xhr.setRequestHeader("content-type", file.type || "application/octet-stream");
