@@ -97,7 +97,7 @@ export default {
 		const now = Date.now();
 
 		// collect all objects in the bucket
-		const all = [];
+		let all = [];
 		let cursor;
 		do {
 			const list = await env.FILESHARE_BUCKET.list({ cursor });
